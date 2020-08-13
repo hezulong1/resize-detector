@@ -1,33 +1,11 @@
 import path from 'path';
 import ts from 'rollup-plugin-typescript2';
-import livereload from 'rollup-plugin-livereload';
+import postcss from 'rollup-plugin-postcss';
+import {
+  terser
+} from "rollup-plugin-terser";
 
 const production = !process.env.ROLLUP_WATCH;
-
-function serve() {
-  let server;
-
-  function toExit() {
-    if (server) server.kill(0);
-  }
-
-  return {
-    writeBundle() {
-      if (server) return;
-      server = require('child_process').spawn(
-        'npm',
-        ['run', 'start', '--', '--dev'],
-        {
-          stdio: ['ignore', 'inherit', 'inherit'],
-          shell: true
-        }
-      );
-
-      process.on('SIGTERM', toExit);
-      process.on('exit', toExit);
-    }
-  };
-}
 
 const tsPlugin = ts({
   check: process.env.NODE_ENV === 'production',
@@ -48,7 +26,7 @@ export default {
   },
   plugins: [
     tsPlugin,
-    !production && serve(),
-    !production && livereload('website')
+    postcss(),
+    production && terser()
   ]
 };
