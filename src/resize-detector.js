@@ -1,51 +1,12 @@
-/**
- * https://github.com/Justineo/resize-detector
- * 
- * 使用 ts 重构, 并解决已知问题
- */
+// https://github.com/Justineo/resize-detector
 
-
-export interface RenderInfo {
-  detached: boolean;
-  rendered: boolean;
-}
-
-export function getRenderInfo(
-  target: HTMLElement | Document | null
-): RenderInfo {
-  // const ret: RenderInfo = {
-  //   detached: false,
-  //   rendered: false
-  // };
-
-  // if (document.documentElement.contains(target)) {
-  // } else {
-  //   ret.detached = true;
-  // }
-
-  if (!document.documentElement.contains(target)) {
-    return {
-      detached: true,
-      rendered: false
-    };
-  }
-
-  let current = target;
-  while (current !== document) {
-    if (getComputedStyle(current as HTMLElement, 'display') === 'none') {
-      return {
-        detached: false,
-        rendered: false
-      };
-    }
-    current = current && current.parentNode;
-  }
-
-  return {
-    detached: false,
-    rendered: true
-  };
-}
+import {
+  createStyles,
+  requestAnimationFrame,
+  cancelAnimationFrame,
+  getComputedStyle,
+  getRenderInfo
+} from './utils';
 
 const css =
   '.resize-triggers{visibility:hidden;opacity:0}.resize-contract-trigger,.resize-contract-trigger:before,.resize-expand-trigger,.resize-triggers{content:"";position:absolute;top:0;left:0;height:100%;width:100%;overflow:hidden}.resize-contract-trigger,.resize-expand-trigger{background:#eee;overflow:auto}.resize-contract-trigger:before{width:200%;height:200%}';
@@ -53,11 +14,7 @@ const css =
 let total = 0;
 let style = null;
 
-export interface IDomNode extends HTMLElement {
-  __resize_mutation_handler__: () => void;
-}
-
-export function addListener(elem: IDomNode, callback: Function): void {
+export function addListener(elem, callback) {
   if (!elem) return;
 
   if (!elem.__resize_mutation_handler__) {
@@ -69,10 +26,7 @@ export function addListener(elem: IDomNode, callback: Function): void {
   if (!listeners) {
     elem.__resize_listeners__ = [];
     if (window.ResizeObserver) {
-      const {
-        offsetWidth,
-        offsetHeight
-      } = elem;
+      const { offsetWidth, offsetHeight } = elem;
       const ro = new ResizeObserver(() => {
         if (!elem.__resize_observer_triggered__) {
           elem.__resize_observer_triggered__ = true;
@@ -87,10 +41,7 @@ export function addListener(elem: IDomNode, callback: Function): void {
       });
 
       // initially display none won't trigger ResizeObserver callback
-      const {
-        detached,
-        rendered
-      } = getRenderInfo(elem);
+      const { detached, rendered } = getRenderInfo(elem);
       elem.__resize_observer_triggered__ =
         detached === false && rendered === false;
       elem.__resize_observer__ = ro;
@@ -173,14 +124,8 @@ export function removeListener(elem, callback) {
 }
 
 function getUpdatedSize(elem) {
-  const {
-    width,
-    height
-  } = elem.__resize_last__;
-  const {
-    offsetWidth,
-    offsetHeight
-  } = elem;
+  const { width, height } = elem.__resize_last__;
+  const { offsetWidth, offsetHeight } = elem;
   if (offsetWidth !== width || offsetHeight !== height) {
     return {
       width: offsetWidth,
@@ -192,10 +137,7 @@ function getUpdatedSize(elem) {
 
 function handleMutation() {
   // `this` denotes the scrolling element
-  const {
-    rendered,
-    detached
-  } = getRenderInfo(this);
+  const { rendered, detached } = getRenderInfo(this);
   if (rendered !== this.__resize_rendered__) {
     if (!detached && this.__resize_triggers__) {
       resetTriggers(this);
@@ -270,17 +212,10 @@ function initTriggers(elem) {
 }
 
 function resetTriggers(elem) {
-  const {
-    expand,
-    expandChild,
-    contract
-  } = elem.__resize_triggers__;
+  const { expand, expandChild, contract } = elem.__resize_triggers__;
 
   // batch read
-  const {
-    scrollWidth: csw,
-    scrollHeight: csh
-  } = contract;
+  const { scrollWidth: csw, scrollHeight: csh } = contract;
   const {
     offsetWidth: eow,
     offsetHeight: eoh,

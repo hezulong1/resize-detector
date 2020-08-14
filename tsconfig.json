@@ -15,10 +15,11 @@
     "noEmitOnError": true,
     "strictNullChecks":true,
     "types": [
+      "node",
       "resize-observer-browser"
     ]
   },
   "include": [
-    "src/**/*.ts", "src/resize-detector.js"
+    "src/**/*.ts"
   ]
 }
