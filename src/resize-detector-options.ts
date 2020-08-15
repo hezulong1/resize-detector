@@ -33,6 +33,9 @@ export interface ResizeDetectorElement extends HTMLElement {
   __resizeDetached__: boolean;
   __resizeTriggered__: boolean;
 
+  __timeID__: number;
+  __position__: string;
+
   __resizeCache__: ResizeDetectorCache;
   __resizeTriggerNodes__: ResizeDetectorTrigger;
 

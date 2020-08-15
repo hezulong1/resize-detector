@@ -17,16 +17,16 @@ const tsPlugin = ts({
 });
 
 export default {
-  input: './src/main.ts',
+  input: './src/resize-detector.ts',
   output: {
-    file: `./index.js`,
-    name: 'Scrollbar',
+    file: `./resize-detector.js`,
+    name: 'ResizeDetector',
     format: 'umd',
     sourcemap: false
   },
   plugins: [
     tsPlugin,
     postcss(),
-    production && terser()
+    // production && terser()
   ]
 };

@@ -1,11 +1,7 @@
 /**
- * 参考 https://github.com/Justineo/resize-detector
+ * refrence: https://github.com/Justineo/resize-detector
  *
- * 使用 ts 重构
- *
- * 1) 移除不合理的逻辑
- * 2) 优化代码
- * 3) 补足声明文件缺少
+ * https://codepen.io/webgeeker/pen/YjrZgg
  */
 
 import {
@@ -18,14 +14,41 @@ import { ResizeSize } from './resize-detector-state';
 let total = 0;
 let style: HTMLStyleElement;
 
-const css: string = require('./resize-detector.css');
+const css = `.ResizeDetector-trigger-container {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.ResizeDetector-trigger-container,
+.ResizeDetector-expand-trigger,
+.ResizeDetector-contract-trigger,
+.ResizeDetector-contract-trigger:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ResizeDetector-expand-trigger,
+.ResizeDetector-contract-trigger {
+  background: #eee;
+  overflow: auto;
+}
+
+.ResizeDetector-contract-trigger:before {
+  width: 200%;
+  height: 200%;
+}`;
 
 const spawnResizeListener = function (el: ResizeDetectorElement) {
-  let resizeListener: () => void = NOOP;
-  let disconnectResizeListener: () => void = NOOP;
+  let _add: () => void = NOOP;
+  let _remove: () => void = NOOP;
 
   if (window.ResizeObserver) {
-    resizeListener = function () {
+    _add = function () {
       const currentSize = new ResizeSize(el.offsetWidth, el.offsetHeight);
       const ro = new ResizeObserver(() => {
         if (!el.__resizeTriggered__) {
@@ -45,7 +68,7 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
       el.__ro__ = ro;
       ro.observe(el);
     };
-    disconnectResizeListener = function () {
+    _remove = function () {
       if (el.__ro__) {
         el.__ro__.unobserve(el);
         el.__ro__.disconnect();
@@ -53,7 +76,7 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
       }
     };
   } else if (el.attachEvent && el.addEventListener) {
-    resizeListener = function () {
+    _add = function () {
       // targeting IE9/10
       el.__resizeLegacyHandler__ = function handleLegacyResize() {
         _handleRunCallback(el);
@@ -64,7 +87,7 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
         <EventListenerOrEventListenerObject>el.__resizeMutationHandler__
       );
     };
-    disconnectResizeListener = function () {
+    _remove = function () {
       el.detachEvent('onresize', el.__resizeLegacyHandler__);
       document.removeEventListener(
         'DOMSubtreeModified',
@@ -72,7 +95,7 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
       );
     };
   } else if (window.MutationObserver) {
-    resizeListener = function () {
+    _add = function () {
       if (!total) {
         style = createStyles(css);
       }
@@ -91,7 +114,7 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
       });
       el.__mo__ = mo;
     };
-    disconnectResizeListener = function () {
+    _remove = function () {
       if (el.__mo__) {
         el.__mo__.disconnect();
         el.__mo__ = <never>null;
@@ -103,7 +126,7 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
     };
   }
 
-  return { add: resizeListener, remove: disconnectResizeListener };
+  return { add: _add, remove: _remove };
 };
 
 export function addResizeListener<T extends ResizeDetectorElement>(
@@ -153,21 +176,21 @@ export interface RenderInfo {
 /**
  * 获取元素的信息，源代码个人解读完理解为：
  *
- * detached -> isDetached // 是否为孤立元素
- * rendered -> canRender  // 是否可渲染使用
+ * detached -> 是否为孤立元素
+ * rendered -> 是否可渲染使用
  *
  * ```
  *
- *           { isDetached: true; canRender: false }
+ *           { detached: true; rendered: false }
  *          /
  *         / Y
- *  被 html 元素包含             { isDetached: false; canRender: false }
+ *  被 html 元素包含             { detached: false; rendered: false }
  *         \ N                 /
  *          \                 / Y
  *      target - html 存在隐藏元素
  *                            \ N
  *                              \
- *                               { isDetached: false; canRender: true }
+ *                               { detached: false; rendered: true }
  *
  *
  * ```
