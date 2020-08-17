@@ -26,7 +26,7 @@ export default {
   },
   plugins: [
     tsPlugin,
-    postcss(),
+    postcss({ inject: false }),
     // production && terser()
   ]
 };

@@ -6,49 +6,37 @@
 
 import {
   ResizeDetectorElement,
-  ResizeDetectorCallback
+  ResizeDetectorCallback,
+  ResizeDetectorEventListener
 } from './resize-detector-options';
-import { isArray, NOOP, createStyles } from './util';
+import { createStyles } from './util';
 import { ResizeSize } from './resize-detector-state';
+
+import css from './resize-detector.css';
 
 let total = 0;
 let style: HTMLStyleElement;
 
-const css = `.ResizeDetector-trigger-container {
-  visibility: hidden;
-  opacity: 0;
-}
+export function addResizeListener(
+  el: ResizeDetectorElement,
+  fn: ResizeDetectorCallback
+): void {
+  if (!el) return;
 
-.ResizeDetector-trigger-container,
-.ResizeDetector-expand-trigger,
-.ResizeDetector-contract-trigger,
-.ResizeDetector-contract-trigger:before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-}
+  if (!el.__resizeEvents__) {
+    el.__resizeEvents__ = {
+      mutation: _handleMutation.bind(el),
+      scroll: _handleScroll.bind(el),
+      legacy: function (this: ResizeDetectorElement) {
+        resizeHandler(this);
+      }.bind(el)
+    };
+  }
 
-.ResizeDetector-expand-trigger,
-.ResizeDetector-contract-trigger {
-  background: #eee;
-  overflow: auto;
-}
+  if (!el.__resizeListeners__) {
+    el.__resizeListeners__ = [];
 
-.ResizeDetector-contract-trigger:before {
-  width: 200%;
-  height: 200%;
-}`;
-
-const spawnResizeListener = function (el: ResizeDetectorElement) {
-  let _add: () => void = NOOP;
-  let _remove: () => void = NOOP;
-
-  if (window.ResizeObserver) {
-    _add = function () {
+    if (window.ResizeObserver) {
       const currentSize = new ResizeSize(el.offsetWidth, el.offsetHeight);
       const ro = new ResizeObserver(() => {
         if (!el.__resizeTriggered__) {
@@ -58,7 +46,7 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
           )
             return;
         }
-        _handleRunCallback(el);
+        resizeHandler(el);
       });
 
       // initially display none won't trigger ResizeObserver callback
@@ -67,35 +55,14 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
 
       el.__ro__ = ro;
       ro.observe(el);
-    };
-    _remove = function () {
-      if (el.__ro__) {
-        el.__ro__.unobserve(el);
-        el.__ro__.disconnect();
-        el.__ro__ = <never>null;
-      }
-    };
-  } else if (el.attachEvent && el.addEventListener) {
-    _add = function () {
+    } else if (el.attachEvent && el.addEventListener) {
       // targeting IE9/10
-      el.__resizeLegacyHandler__ = function handleLegacyResize() {
-        _handleRunCallback(el);
-      };
-      el.attachEvent('onresize', el.__resizeLegacyHandler__);
+      el.attachEvent('onresize', el.__resizeEvents__.legacy);
       document.addEventListener(
         'DOMSubtreeModified',
-        <EventListenerOrEventListenerObject>el.__resizeMutationHandler__
+        <ResizeDetectorEventListener<Event>>el.__resizeEvents__.mutation
       );
-    };
-    _remove = function () {
-      el.detachEvent('onresize', el.__resizeLegacyHandler__);
-      document.removeEventListener(
-        'DOMSubtreeModified',
-        <EventListenerOrEventListenerObject>el.__resizeMutationHandler__
-      );
-    };
-  } else if (window.MutationObserver) {
-    _add = function () {
+    } else {
       if (!total) {
         style = createStyles(css);
       }
@@ -103,54 +70,30 @@ const spawnResizeListener = function (el: ResizeDetectorElement) {
 
       el.__resizeRendered__ = getRenderInfo(el).rendered;
 
-      const mo = new MutationObserver(
-        <MutationCallback>el.__resizeMutationHandler__
-      );
-      mo.observe(document, {
-        attributes: true,
-        childList: true,
-        characterData: true,
-        subtree: true
-      });
-      el.__mo__ = mo;
-    };
-    _remove = function () {
-      if (el.__mo__) {
-        el.__mo__.disconnect();
-        el.__mo__ = <never>null;
+      if (window.MutationObserver) {
+        const mo = new MutationObserver(
+          <ResizeDetectorEventListener<MutationObserver>>(
+            el.__resizeEvents__.mutation
+          )
+        );
+        mo.observe(document, {
+          attributes: true,
+          childList: true,
+          characterData: true,
+          subtree: true
+        });
+        el.__mo__ = mo;
       }
-      el.removeEventListener('scroll', _handleScroll);
-      el.__resizeTriggerNodes__ &&
-        el.removeChild(el.__resizeTriggerNodes__.container);
-      el.__resizeTriggerNodes__ = <never>null;
-    };
-  }
-
-  return { add: _add, remove: _remove };
-};
-
-export function addResizeListener<T extends ResizeDetectorElement>(
-  el: T,
-  fn: ResizeDetectorCallback<T>
-): void {
-  if (!el) return;
-
-  if (!el.__resizeMutationHandler__) {
-    el.__resizeMutationHandler__ = _handleMutation.bind(el);
-  }
-
-  if (!el.__resizeListeners__) {
-    el.__resizeListeners__ = [];
-    spawnResizeListener(el).add();
+    }
   }
 
   el.__resizeListeners__.push(fn);
   total++;
 }
 
-export function removeResizeListener<T extends ResizeDetectorElement>(
-  el: T,
-  fn: ResizeDetectorCallback<T>
+export function removeResizeListener(
+  el: ResizeDetectorElement,
+  fn: ResizeDetectorCallback
 ): void {
   const listeners = el?.__resizeListeners__;
 
@@ -158,8 +101,29 @@ export function removeResizeListener<T extends ResizeDetectorElement>(
   fn && listeners.splice(listeners.indexOf(fn), 1);
 
   // no listeners exist, or removing all listeners
-  if ((isArray(listeners) && !listeners.length) || !fn) {
-    spawnResizeListener(el).remove();
+  if (!listeners.length) {
+    if (window.ResizeObserver) {
+      if (!el.__ro__) return;
+
+      el.__ro__.unobserve(el);
+      el.__ro__.disconnect();
+      el.__ro__ = <never>null;
+    } else if (el.detachEvent && el.removeEventListener) {
+      el.detachEvent('onresize', el.__resizeEvents__.legacy);
+      document.removeEventListener(
+        'DOMSubtreeModified',
+        <ResizeDetectorEventListener<Event>>el.__resizeEvents__.mutation
+      );
+    } else {
+      if (el.__mo__) {
+        el.__mo__.disconnect();
+        el.__mo__ = <never>null;
+      }
+      el.removeEventListener('scroll', el.__resizeEvents__.scroll);
+      el.__resizeTriggerNodes__ &&
+        el.removeChild(el.__resizeTriggerNodes__.container);
+      el.__resizeTriggerNodes__ = <never>null;
+    }
 
     el.__resizeListeners__ = <never>null;
   }
@@ -242,64 +206,41 @@ function _handleMutation(this: ResizeDetectorElement): void {
   if (this.__resizeRendered__ === rendered) return;
   this.__resizeRendered__ = rendered;
 
-  if (detached) return;
-
   if (!detached && this.__resizeTriggerNodes__) {
     _handleResetTrigger(this);
-    this.addEventListener('scroll', _handleScroll, true);
+    this.addEventListener('scroll', this.__resizeEvents__.scroll, true);
   }
 
-  _handleRunCallback(this);
+  resizeHandler(this);
 }
 
-/**
- * @private
- * @param this
- */
 function _handleScroll(this: ResizeDetectorElement): void {
   const scheduleUpdate = () => {
-    const updated = getUpdatedSize(this);
+    const previousSize = this.__resizeSize__;
+    const currentSize = new ResizeSize(this.offsetWidth, this.offsetHeight);
+    const updated = currentSize.createResizeSize(previousSize);
 
-    if (updated) {
-      this.__resizeCache__.width = updated.width;
-      this.__resizeCache__.height = updated.height;
-      _handleRunCallback(this);
+    if (updated.widthChanged || updated.heightChanged) {
+      this.__resizeSize__ = currentSize;
+      resizeHandler(this);
     }
   };
 
   _handleResetTrigger(this);
 
-  if (!this.__resizeCache__) {
-    this.__resizeCache__ = {
-      nativePosition: '',
-      timeID: -1,
-      width: 0,
-      height: 0
-    };
-  }
-
-  cancelAnimationFrame(this.__resizeCache__.timeID);
-  this.__resizeCache__.timeID = requestAnimationFrame(scheduleUpdate);
+  this.__timeID__ && cancelAnimationFrame(this.__timeID__);
+  this.__timeID__ = requestAnimationFrame(scheduleUpdate);
 }
 
-/**
- * @private
- * @param elem
- */
-function _handleRunCallback(elem: ResizeDetectorElement) {
-  if (!elem || !elem.__resizeListeners__) {
-    return;
+function resizeHandler(el: ResizeDetectorElement): void {
+  const listeners = el.__resizeListeners__ || [];
+  if (listeners.length) {
+    listeners.forEach(fn => {
+      fn();
+    });
   }
-  elem.__resizeListeners__.forEach(callback => {
-    return callback.call(elem, elem);
-  });
 }
 
-/**
- * 初始化触发器
- * @private
- * @param el ResizeDetectorElement
- */
 function _handleCreateTrigger(el: ResizeDetectorElement): void {
   const nativePosition = getComputedStyle(el, null).position;
 
@@ -307,14 +248,7 @@ function _handleCreateTrigger(el: ResizeDetectorElement): void {
     el.style.position = 'relative';
   }
 
-  if (!el.__resizeCache__) {
-    el.__resizeCache__ = {
-      nativePosition: nativePosition,
-      width: 0,
-      height: 0,
-      timeID: -1
-    };
-  }
+  el.__nativePosition__ = nativePosition;
 
   const $container = document.createElement('div');
   $container.className = 'ResizeDetector-trigger-container';
@@ -340,18 +274,10 @@ function _handleCreateTrigger(el: ResizeDetectorElement): void {
 
   _handleResetTrigger(el);
 
-  el.addEventListener('scroll', _handleScroll, true);
-
-  if (el.__resizeCache__) {
-    el.__resizeCache__.width = el.offsetWidth;
-    el.__resizeCache__.height = el.offsetHeight;
-  }
+  el.addEventListener('scroll', el.__resizeEvents__.scroll, true);
+  el.__resizeSize__ = new ResizeSize(el.offsetWidth, el.offsetHeight);
 }
-/**
- * 重置触发器
- * @private
- * @param el ResizeDetectorElement
- */
+
 function _handleResetTrigger(el: ResizeDetectorElement) {
   if (!el.__resizeTriggerNodes__) return;
 
@@ -373,22 +299,4 @@ function _handleResetTrigger(el: ResizeDetectorElement) {
   expandChild.style.height = eoh + 1 + 'px';
   expand.scrollLeft = esw;
   expand.scrollTop = esh;
-}
-
-/**
- * @private
- * @param el
- */
-function getUpdatedSize(el: ResizeDetectorElement) {
-  if (!el.__resizeCache__) return;
-
-  const { width, height } = el.__resizeCache__;
-  const { offsetWidth, offsetHeight } = el;
-
-  if (offsetWidth !== width || offsetHeight !== height) {
-    return {
-      width: offsetWidth,
-      height: offsetHeight
-    };
-  }
 }

@@ -11,13 +11,6 @@
       (document.querySelector('head') || document.body).appendChild(style);
       return style;
   }
-  var toString = function (input) {
-      return Object.prototype.toString.call(input).slice(8, -1);
-  };
-  var isArray = function (value) {
-      return Array.isArray ? Array.isArray(value) : toString(value) === 'Array';
-  };
-  var NOOP = function () { };
 
   var ResizeSize = (function () {
       function ResizeSize(width, height) {
@@ -48,87 +41,58 @@
       return ResizeSize;
   }());
 
+  var css_248z = ".ResizeDetector-trigger-container {\r\n  visibility: hidden;\r\n  opacity: 0;\r\n}\r\n\r\n.ResizeDetector-trigger-container,\r\n.ResizeDetector-expand-trigger,\r\n.ResizeDetector-contract-trigger,\r\n.ResizeDetector-contract-trigger:before {\r\n  content: \"\";\r\n  position: absolute;\r\n  top: 0;\r\n  left: 0;\r\n  height: 100%;\r\n  width: 100%;\r\n  overflow: hidden;\r\n}\r\n\r\n.ResizeDetector-expand-trigger,\r\n.ResizeDetector-contract-trigger {\r\n  background: #eee;\r\n  overflow: auto;\r\n}\r\n\r\n.ResizeDetector-contract-trigger:before {\r\n  width: 200%;\r\n  height: 200%;\r\n}\r\n";
+
   var total = 0;
   var style;
-  var css = ".ResizeDetector-trigger-container {\n  visibility: hidden;\n  opacity: 0;\n}\n\n.ResizeDetector-trigger-container,\n.ResizeDetector-expand-trigger,\n.ResizeDetector-contract-trigger,\n.ResizeDetector-contract-trigger:before {\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden;\n}\n\n.ResizeDetector-expand-trigger,\n.ResizeDetector-contract-trigger {\n  background: #eee;\n  overflow: auto;\n}\n\n.ResizeDetector-contract-trigger:before {\n  width: 200%;\n  height: 200%;\n}";
-  var spawnResizeListener = function (el) {
-      var _add = NOOP;
-      var _remove = NOOP;
-      if (window.ResizeObserver) {
-          _add = function () {
-              var currentSize = new ResizeSize(el.offsetWidth, el.offsetHeight);
+  function addResizeListener(el, fn) {
+      if (!el)
+          return;
+      if (!el.__resizeEvents__) {
+          el.__resizeEvents__ = {
+              mutation: _handleMutation.bind(el),
+              scroll: _handleScroll.bind(el),
+              legacy: function () { resizeHandler(this); }.bind(el)
+          };
+      }
+      if (!el.__resizeListeners__) {
+          el.__resizeListeners__ = [];
+          if (window.ResizeObserver) {
+              var currentSize_1 = new ResizeSize(el.offsetWidth, el.offsetHeight);
               var ro = new ResizeObserver(function () {
                   if (!el.__resizeTriggered__) {
                       el.__resizeTriggered__ = true;
-                      if (currentSize.equals(new ResizeSize(el.offsetWidth, el.offsetHeight)))
+                      if (currentSize_1.equals(new ResizeSize(el.offsetWidth, el.offsetHeight)))
                           return;
                   }
-                  _handleRunCallback(el);
+                  resizeHandler(el);
               });
               var _a = getRenderInfo(el), detached = _a.detached, rendered = _a.rendered;
               el.__resizeTriggered__ = detached === false && rendered === false;
               el.__ro__ = ro;
               ro.observe(el);
-          };
-          _remove = function () {
-              if (el.__ro__) {
-                  el.__ro__.unobserve(el);
-                  el.__ro__.disconnect();
-                  el.__ro__ = null;
-              }
-          };
-      }
-      else if (el.attachEvent && el.addEventListener) {
-          _add = function () {
-              el.__resizeLegacyHandler__ = function handleLegacyResize() {
-                  _handleRunCallback(el);
-              };
-              el.attachEvent('onresize', el.__resizeLegacyHandler__);
-              document.addEventListener('DOMSubtreeModified', el.__resizeMutationHandler__);
-          };
-          _remove = function () {
-              el.detachEvent('onresize', el.__resizeLegacyHandler__);
-              document.removeEventListener('DOMSubtreeModified', el.__resizeMutationHandler__);
-          };
-      }
-      else if (window.MutationObserver) {
-          _add = function () {
+          }
+          else if (el.attachEvent && el.addEventListener) {
+              el.attachEvent('onresize', el.__resizeEvents__.legacy);
+              document.addEventListener('DOMSubtreeModified', el.__resizeEvents__.mutation);
+          }
+          else {
               if (!total) {
-                  style = createStyles(css);
+                  style = createStyles(css_248z);
               }
               _handleCreateTrigger(el);
               el.__resizeRendered__ = getRenderInfo(el).rendered;
-              var mo = new MutationObserver(el.__resizeMutationHandler__);
-              mo.observe(document, {
-                  attributes: true,
-                  childList: true,
-                  characterData: true,
-                  subtree: true
-              });
-              el.__mo__ = mo;
-          };
-          _remove = function () {
-              if (el.__mo__) {
-                  el.__mo__.disconnect();
-                  el.__mo__ = null;
+              if (window.MutationObserver) {
+                  var mo = new MutationObserver(el.__resizeEvents__.mutation);
+                  mo.observe(document, {
+                      attributes: true,
+                      childList: true,
+                      characterData: true,
+                      subtree: true
+                  });
+                  el.__mo__ = mo;
               }
-              el.removeEventListener('scroll', _handleScroll);
-              el.__resizeTriggerNodes__ &&
-                  el.removeChild(el.__resizeTriggerNodes__.container);
-              el.__resizeTriggerNodes__ = null;
-          };
-      }
-      return { add: _add, remove: _remove };
-  };
-  function addResizeListener(el, fn) {
-      if (!el)
-          return;
-      if (!el.__resizeMutationHandler__) {
-          el.__resizeMutationHandler__ = _handleMutation.bind(el);
-      }
-      if (!el.__resizeListeners__) {
-          el.__resizeListeners__ = [];
-          spawnResizeListener(el).add();
+          }
       }
       el.__resizeListeners__.push(fn);
       total++;
@@ -139,8 +103,28 @@
       if (!listeners)
           return;
       fn && listeners.splice(listeners.indexOf(fn), 1);
-      if ((isArray(listeners) && !listeners.length) || !fn) {
-          spawnResizeListener(el).remove();
+      if (!listeners.length) {
+          if (window.ResizeObserver) {
+              if (!el.__ro__)
+                  return;
+              el.__ro__.unobserve(el);
+              el.__ro__.disconnect();
+              el.__ro__ = null;
+          }
+          else if (el.detachEvent && el.removeEventListener) {
+              el.detachEvent('onresize', el.__resizeEvents__.legacy);
+              document.removeEventListener('DOMSubtreeModified', el.__resizeEvents__.mutation);
+          }
+          else {
+              if (el.__mo__) {
+                  el.__mo__.disconnect();
+                  el.__mo__ = null;
+              }
+              el.removeEventListener('scroll', el.__resizeEvents__.scroll);
+              el.__resizeTriggerNodes__ &&
+                  el.removeChild(el.__resizeTriggerNodes__.container);
+              el.__resizeTriggerNodes__ = null;
+          }
           el.__resizeListeners__ = null;
       }
       if (!--total && style) {
@@ -180,57 +164,41 @@
       if (this.__resizeRendered__ === rendered)
           return;
       this.__resizeRendered__ = rendered;
-      if (detached)
-          return;
       if (!detached && this.__resizeTriggerNodes__) {
           _handleResetTrigger(this);
-          this.addEventListener('scroll', _handleScroll, true);
+          this.addEventListener('scroll', this.__resizeEvents__.scroll, true);
       }
-      _handleRunCallback(this);
+      resizeHandler(this);
   }
   function _handleScroll() {
       var _this = this;
       var scheduleUpdate = function () {
-          var updated = getUpdatedSize(_this);
-          if (updated) {
-              _this.__resizeCache__.width = updated.width;
-              _this.__resizeCache__.height = updated.height;
-              _handleRunCallback(_this);
+          var previousSize = _this.__resizeSize__;
+          var currentSize = new ResizeSize(_this.offsetWidth, _this.offsetHeight);
+          var updated = currentSize.createResizeSize(previousSize);
+          if (updated.widthChanged || updated.heightChanged) {
+              _this.__resizeSize__ = currentSize;
+              resizeHandler(_this);
           }
       };
       _handleResetTrigger(this);
-      if (!this.__resizeCache__) {
-          this.__resizeCache__ = {
-              nativePosition: '',
-              timeID: -1,
-              width: 0,
-              height: 0
-          };
-      }
-      cancelAnimationFrame(this.__resizeCache__.timeID);
-      this.__resizeCache__.timeID = requestAnimationFrame(scheduleUpdate);
+      this.__timeID__ && cancelAnimationFrame(this.__timeID__);
+      this.__timeID__ = requestAnimationFrame(scheduleUpdate);
   }
-  function _handleRunCallback(elem) {
-      if (!elem || !elem.__resizeListeners__) {
-          return;
+  function resizeHandler(el) {
+      var listeners = el.__resizeListeners__ || [];
+      if (listeners.length) {
+          listeners.forEach(function (fn) {
+              fn();
+          });
       }
-      elem.__resizeListeners__.forEach(function (callback) {
-          return callback.call(elem, elem);
-      });
   }
   function _handleCreateTrigger(el) {
       var nativePosition = getComputedStyle(el, null).position;
       if (!nativePosition || nativePosition === 'static') {
           el.style.position = 'relative';
       }
-      if (!el.__resizeCache__) {
-          el.__resizeCache__ = {
-              nativePosition: nativePosition,
-              width: 0,
-              height: 0,
-              timeID: -1
-          };
-      }
+      el.__nativePosition__ = nativePosition;
       var $container = document.createElement('div');
       $container.className = 'ResizeDetector-trigger-container';
       var $trigger = document.createElement('div');
@@ -249,11 +217,8 @@
           contract: $contractTrigger
       };
       _handleResetTrigger(el);
-      el.addEventListener('scroll', _handleScroll, true);
-      if (el.__resizeCache__) {
-          el.__resizeCache__.width = el.offsetWidth;
-          el.__resizeCache__.height = el.offsetHeight;
-      }
+      el.addEventListener('scroll', el.__resizeEvents__.scroll, true);
+      el.__resizeSize__ = new ResizeSize(el.offsetWidth, el.offsetHeight);
   }
   function _handleResetTrigger(el) {
       if (!el.__resizeTriggerNodes__)
@@ -267,18 +232,6 @@
       expandChild.style.height = eoh + 1 + 'px';
       expand.scrollLeft = esw;
       expand.scrollTop = esh;
-  }
-  function getUpdatedSize(el) {
-      if (!el.__resizeCache__)
-          return;
-      var _a = el.__resizeCache__, width = _a.width, height = _a.height;
-      var offsetWidth = el.offsetWidth, offsetHeight = el.offsetHeight;
-      if (offsetWidth !== width || offsetHeight !== height) {
-          return {
-              width: offsetWidth,
-              height: offsetHeight
-          };
-      }
   }
 
   exports.addResizeListener = addResizeListener;

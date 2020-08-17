@@ -87,6 +87,35 @@
       margin: 0 1px 1px 0;
       background-color: #cce;
     }
+
+    .resize-triggers {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    .resize-triggers,
+    .resize-expand-trigger,
+    .resize-contract-trigger,
+    .resize-contract-trigger:before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .resize-expand-trigger,
+    .resize-contract-trigger {
+      background: #eee;
+      overflow: auto;
+    }
+
+    .resize-contract-trigger:before {
+      width: 200%;
+      height: 200%;
+    }
   </style>
 </head>
 
@@ -96,7 +125,13 @@
   <div id="container">
     <input id="push" type="checkbox" style="display: none">
     <label id="pusher" for="push">Hover or Click</label>
-    <div id="el">&rarr; Resize Detector Enabled &larr;</div>
+    <div id="el">&rarr; Resize Detector Enabled &larr;
+
+      <div class="resize-triggers">
+        <div class="resize-expand-trigger"></div>
+        <div class="resize-contract-trigger"></div>
+      </div>
+    </div>
   </div>
   <section id="wrapper">
     <div id="r1"></div>
@@ -115,7 +150,7 @@
     var output = document.getElementById('output')
 
     function log(msg) {
-      output.innerHTML += `<span class="log">${msg}</span>`
+      output.innerHTML += '<span class="log">' + msg + '</span>'
     }
 
     ResizeDetector.addResizeListener(el, function () {
@@ -148,7 +183,7 @@
       log('r1: resize')
     })
 
-    ResizeDetector.removeResizeListener(r2, function () {
+    ResizeDetector.addResizeListener(r2, function () {
       log('r2: resize')
     })
   </script>
