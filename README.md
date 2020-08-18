@@ -6,7 +6,9 @@ This project is basically a modified version of [Justineo/resize-detector](https
 - typescript
 
 ```typescript
-import { addResizeListener, removeResizeListener, ResizeDetectorElement, ResizeDetectorCallback } from 'resize-detector-typescript';
+import { addResizeListener, removeResizeListener } from 'resize-detector-typescript';
+import { ResizeDetectorElement, ResizeDetectorCallback } from 'resize-detector-typescript/dist/resize-detector-options';
+
 
 const testDom: ResizeDetectorElement = document.createElement('div');
 document.body.appendChild(testDom);

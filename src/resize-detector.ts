@@ -69,10 +69,11 @@ export function addResizeListener(
 
       el.__resizeRendered__ = getRenderInfo(el).rendered;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const MutationObserver =
         window.MutationObserver ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).WebKitMutationObserver ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).MozMutationObserver;
 
       if (MutationObserver) {
@@ -114,17 +115,20 @@ export function removeResizeListener(
       el.__ro__.disconnect();
       el.__ro__ = <never>null;
     } else if (el.detachEvent && el.removeEventListener) {
-      el.detachEvent('onresize', el.__resizeEvents__.legacy);
-      document.removeEventListener(
-        'DOMSubtreeModified',
-        <ResizeDetectorEventListener<Event>>el.__resizeEvents__.mutation
-      );
+      el.__resizeEvents__ &&
+        el.detachEvent('onresize', el.__resizeEvents__.legacy);
+      el.__resizeEvents__ &&
+        document.removeEventListener(
+          'DOMSubtreeModified',
+          <ResizeDetectorEventListener<Event>>el.__resizeEvents__.mutation
+        );
     } else {
       if (el.__mo__) {
         el.__mo__.disconnect();
         el.__mo__ = <never>null;
       }
-      el.removeEventListener('scroll', el.__resizeEvents__.scroll);
+      el.__resizeEvents__ &&
+        el.removeEventListener('scroll', el.__resizeEvents__.scroll);
       el.__resizeTriggerNodes__ &&
         el.removeChild(el.__resizeTriggerNodes__.container);
       el.__resizeTriggerNodes__ = <never>null;
@@ -208,7 +212,8 @@ function _handleMutation(this: ResizeDetectorElement): void {
 
   if (!detached && this.__resizeTriggerNodes__) {
     _handleResetTrigger(this);
-    this.addEventListener('scroll', this.__resizeEvents__.scroll, true);
+    this.__resizeEvents__ &&
+      this.addEventListener('scroll', this.__resizeEvents__.scroll, true);
   }
 
   _handleResize(this);
@@ -218,7 +223,9 @@ function _handleScroll(this: ResizeDetectorElement): void {
   const scheduleUpdate = () => {
     const previousSize = this.__resizeSize__;
     const currentSize = new ResizeSize(this.offsetWidth, this.offsetHeight);
-    const updated = currentSize.createResizeSize(previousSize);
+    const updated = previousSize
+      ? currentSize.createResizeSize(previousSize)
+      : { widthChanged: false, heightChanged: false };
 
     if (updated.widthChanged || updated.heightChanged) {
       this.__resizeSize__ = currentSize;
@@ -274,7 +281,8 @@ function _handleCreateTrigger(el: ResizeDetectorElement): void {
 
   _handleResetTrigger(el);
 
-  el.addEventListener('scroll', el.__resizeEvents__.scroll, true);
+  el.__resizeEvents__ &&
+    el.addEventListener('scroll', el.__resizeEvents__.scroll, true);
   el.__resizeSize__ = new ResizeSize(el.offsetWidth, el.offsetHeight);
 }
 

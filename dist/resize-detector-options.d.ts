@@ -21,23 +21,29 @@ export declare type ResizeDetectorEventListener<T> = {
   ? 'ResizeDetectorElement'
   : 'Event'];
 export interface ResizeDetectorElement extends HTMLElement {
-  __mo__: MutationObserver;
-  __ro__: ResizeObserver;
-  __resizeListeners__: ResizeDetectorCallback[];
-  __resizeRendered__: boolean;
-  __resizeDetached__: boolean;
-  __resizeTriggered__: boolean;
-  __nativePosition__: string | null;
-  __timeID__: number | null;
-  __resizeSize__: ResizeSize;
-  __resizeTriggerNodes__: ResizeDetectorTrigger;
-  __resizeEvents__: {
+  __mo__?: MutationObserver;
+  __ro__?: ResizeObserver;
+  __resizeListeners__?: ResizeDetectorCallback[];
+  __resizeRendered__?: boolean;
+  __resizeDetached__?: boolean;
+  __resizeTriggered__?: boolean;
+  __nativePosition__?: string | null;
+  __timeID__?: number | null;
+  __resizeSize__?: ResizeSize;
+  __resizeTriggerNodes__?: ResizeDetectorTrigger;
+  __resizeEvents__?: {
     [K in ResizeEventType]: ResizeDetectorEventListener<
       K extends Extract<ResizeEventType, 'mutation'>
         ? string | MutationObserver
         : string
     >;
   };
-  attachEvent(type: string, listener: ResizeDetectorEventListener<Event>): void;
-  detachEvent(type: string, listener: ResizeDetectorEventListener<Event>): void;
+  attachEvent?(
+    type: string,
+    listener: ResizeDetectorEventListener<Event>
+  ): void;
+  detachEvent?(
+    type: string,
+    listener: ResizeDetectorEventListener<Event>
+  ): void;
 }
