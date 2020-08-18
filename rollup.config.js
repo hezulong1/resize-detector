@@ -1,32 +1,67 @@
 import path from 'path';
+import minimist from 'minimist';
 import ts from 'rollup-plugin-typescript2';
 import postcss from 'rollup-plugin-postcss';
-import {
-  terser
-} from "rollup-plugin-terser";
+import { terser } from 'rollup-plugin-terser';
 
-const production = !process.env.ROLLUP_WATCH;
+const argv = minimist(process.argv.slice(2));
 
-const tsPlugin = ts({
+const tsPluginConfig = {
   check: process.env.NODE_ENV === 'production',
-  tsconfig: path.resolve(__dirname, 'tsconfig.json'),
-  tsconfigOverride: {
-    compilerOptions: {},
-    exclude: ['__tests__']
-  }
-});
-
-export default {
-  input: './src/resize-detector.ts',
-  output: {
-    file: `./resize-detector.js`,
-    name: 'ResizeDetector',
-    format: 'umd',
-    sourcemap: false
-  },
-  plugins: [
-    tsPlugin,
-    postcss({ inject: false }),
-    // production && terser()
-  ]
+  tsconfig: path.resolve(__dirname, 'tsconfig.json')
 };
+const tsPlugin = ts(tsPluginConfig);
+const postcssPlugin = postcss({ inject: false, minimize: true });
+
+const buildFormats = [];
+if (!argv.format || argv.format === 'es') {
+  buildFormats.push({
+    input: './src/resize-detector.ts',
+    output: {
+      file: './dist/resize-detector.esm.js',
+      format: 'esm',
+      sourcemap: false
+    },
+    plugins: [
+      postcssPlugin,
+      ts({
+        ...tsPluginConfig,
+        useTsconfigDeclarationDir: false,
+        tsconfigOverride: {
+          compilerOptions: {
+            target: 'ES2015',
+            declarationDir: 'typings'
+          }
+        }
+      })
+    ]
+  });
+}
+
+if (!argv.format || argv.format === 'umd') {
+  const unpkgConfig = [
+    {
+      input: './src/resize-detector.ts',
+      output: {
+        file: './dist/resize-detector.js',
+        format: 'umd',
+        name: 'ResizeDetector',
+        sourcemap: false
+      },
+      plugins: [postcssPlugin, tsPlugin]
+    },
+    {
+      input: './src/resize-detector.ts',
+      output: {
+        file: './dist/resize-detector.min.js',
+        format: 'umd',
+        name: 'ResizeDetector',
+        sourcemap: false
+      },
+      plugins: [postcssPlugin, tsPlugin, terser()]
+    }
+  ];
+  buildFormats.push(...unpkgConfig);
+}
+
+export default buildFormats;

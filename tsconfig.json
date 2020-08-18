@@ -1,23 +1,25 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "dist",
     "sourceMap": false,
     "strict": true,
-    "target": "es3",
+    "target": "es5",
     "lib": ["esnext", "dom"],
     "noUnusedLocals": true,
     "experimentalDecorators": true,
     "removeComments": true,
+
     "module": "esnext",
     "moduleResolution": "node",
+
     "esModuleInterop": true,
     "noEmitOnError": true,
     "strictNullChecks":true,
     "types": [
       "node",
       "resize-observer-browser"
-    ]
+    ],
+    "declaration": true
   },
   "include": [
     "src/**/*.ts"

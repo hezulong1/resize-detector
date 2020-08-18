@@ -1,7 +1,5 @@
 /**
  * refrence: https://github.com/Justineo/resize-detector
- *
- * https://codepen.io/webgeeker/pen/YjrZgg
  */
 
 import {
@@ -9,8 +7,9 @@ import {
   ResizeDetectorCallback,
   ResizeDetectorEventListener
 } from './resize-detector-options';
-import { createStyles } from './util';
+import { createStyles, getStyle } from './util';
 import { ResizeSize } from './resize-detector-state';
+import { requestAnimationFrame, cancelAnimationFrame } from './polyfill';
 
 import css from './resize-detector.css';
 
@@ -28,7 +27,7 @@ export function addResizeListener(
       mutation: _handleMutation.bind(el),
       scroll: _handleScroll.bind(el),
       legacy: function (this: ResizeDetectorElement) {
-        resizeHandler(this);
+        _handleResize(this);
       }.bind(el)
     };
   }
@@ -46,7 +45,7 @@ export function addResizeListener(
           )
             return;
         }
-        resizeHandler(el);
+        _handleResize(el);
       });
 
       // initially display none won't trigger ResizeObserver callback
@@ -70,7 +69,13 @@ export function addResizeListener(
 
       el.__resizeRendered__ = getRenderInfo(el).rendered;
 
-      if (window.MutationObserver) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const MutationObserver =
+        window.MutationObserver ||
+        (window as any).WebKitMutationObserver ||
+        (window as any).MozMutationObserver;
+
+      if (MutationObserver) {
         const mo = new MutationObserver(
           <ResizeDetectorEventListener<MutationObserver>>(
             el.__resizeEvents__.mutation
@@ -158,10 +163,8 @@ export interface RenderInfo {
  *
  *
  * ```
- * @public
- * @param target 被检测的 HTMLElement 元素
  */
-export function getRenderInfo(target: HTMLElement): RenderInfo {
+function getRenderInfo(target: HTMLElement): RenderInfo {
   const htmlDomNode: HTMLElement = document.documentElement;
   const result: RenderInfo = {
     detached: false,
@@ -175,10 +178,7 @@ export function getRenderInfo(target: HTMLElement): RenderInfo {
 
     // IS DISPLAY=NONE 当前以及父级中均不可隐藏
     while (currentNode === htmlDomNode || htmlDomNode.contains(currentNode)) {
-      if (
-        getComputedStyle(currentNode, null).getPropertyValue('display') ===
-        'none'
-      ) {
+      if (getStyle(currentNode, 'display') === 'none') {
         result.rendered = false;
         break;
       }
@@ -211,7 +211,7 @@ function _handleMutation(this: ResizeDetectorElement): void {
     this.addEventListener('scroll', this.__resizeEvents__.scroll, true);
   }
 
-  resizeHandler(this);
+  _handleResize(this);
 }
 
 function _handleScroll(this: ResizeDetectorElement): void {
@@ -222,7 +222,7 @@ function _handleScroll(this: ResizeDetectorElement): void {
 
     if (updated.widthChanged || updated.heightChanged) {
       this.__resizeSize__ = currentSize;
-      resizeHandler(this);
+      _handleResize(this);
     }
   };
 
@@ -232,7 +232,7 @@ function _handleScroll(this: ResizeDetectorElement): void {
   this.__timeID__ = requestAnimationFrame(scheduleUpdate);
 }
 
-function resizeHandler(el: ResizeDetectorElement): void {
+function _handleResize(el: ResizeDetectorElement): void {
   const listeners = el.__resizeListeners__ || [];
   if (listeners.length) {
     listeners.forEach(fn => {

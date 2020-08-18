@@ -11,6 +11,16 @@
       (document.querySelector('head') || document.body).appendChild(style);
       return style;
   }
+  function getStyle(elem, prop) {
+      var view = elem.ownerDocument.defaultView;
+      if (!view) {
+          view = window;
+      }
+      var computedStyle = (view.getComputedStyle(elem, null) || {
+          display: 'none'
+      });
+      return computedStyle[prop];
+  }
 
   var ResizeSize = (function () {
       function ResizeSize(width, height) {
@@ -41,7 +51,32 @@
       return ResizeSize;
   }());
 
-  var css_248z = ".ResizeDetector-trigger-container {\r\n  visibility: hidden;\r\n  opacity: 0;\r\n}\r\n\r\n.ResizeDetector-trigger-container,\r\n.ResizeDetector-expand-trigger,\r\n.ResizeDetector-contract-trigger,\r\n.ResizeDetector-contract-trigger:before {\r\n  content: \"\";\r\n  position: absolute;\r\n  top: 0;\r\n  left: 0;\r\n  height: 100%;\r\n  width: 100%;\r\n  overflow: hidden;\r\n}\r\n\r\n.ResizeDetector-expand-trigger,\r\n.ResizeDetector-contract-trigger {\r\n  background: #eee;\r\n  overflow: auto;\r\n}\r\n\r\n.ResizeDetector-contract-trigger:before {\r\n  width: 200%;\r\n  height: 200%;\r\n}\r\n";
+  var raf;
+  function requestAnimationFrame(callback) {
+      if (!raf) {
+          raf = (window.requestAnimationFrame ||
+              window.webkitRequestAnimationFrame ||
+              window.mozRequestAnimationFrame ||
+              function (callback) {
+                  return setTimeout(callback, 16.67);
+              }).bind(window);
+      }
+      return raf(callback);
+  }
+  var caf;
+  function cancelAnimationFrame(id) {
+      if (!caf) {
+          caf = (window.cancelAnimationFrame ||
+              window.webkitCancelAnimationFrame ||
+              window.mozCancelAnimationFrame ||
+              function (id) {
+                  clearTimeout(id);
+              }).bind(window);
+      }
+      caf(id);
+  }
+
+  var css_248z = ".ResizeDetector-trigger-container{visibility:hidden;opacity:0}.ResizeDetector-contract-trigger,.ResizeDetector-contract-trigger:before,.ResizeDetector-expand-trigger,.ResizeDetector-trigger-container{content:\"\";position:absolute;top:0;left:0;height:100%;width:100%;overflow:hidden}.ResizeDetector-contract-trigger,.ResizeDetector-expand-trigger{background:#eee;overflow:auto}.ResizeDetector-contract-trigger:before{width:200%;height:200%}";
 
   var total = 0;
   var style;
@@ -52,7 +87,9 @@
           el.__resizeEvents__ = {
               mutation: _handleMutation.bind(el),
               scroll: _handleScroll.bind(el),
-              legacy: function () { resizeHandler(this); }.bind(el)
+              legacy: function () {
+                  _handleResize(this);
+              }.bind(el)
           };
       }
       if (!el.__resizeListeners__) {
@@ -65,7 +102,7 @@
                       if (currentSize_1.equals(new ResizeSize(el.offsetWidth, el.offsetHeight)))
                           return;
                   }
-                  resizeHandler(el);
+                  _handleResize(el);
               });
               var _a = getRenderInfo(el), detached = _a.detached, rendered = _a.rendered;
               el.__resizeTriggered__ = detached === false && rendered === false;
@@ -82,8 +119,9 @@
               }
               _handleCreateTrigger(el);
               el.__resizeRendered__ = getRenderInfo(el).rendered;
-              if (window.MutationObserver) {
-                  var mo = new MutationObserver(el.__resizeEvents__.mutation);
+              var MutationObserver_1 = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+              if (MutationObserver_1) {
+                  var mo = new MutationObserver_1((el.__resizeEvents__.mutation));
                   mo.observe(document, {
                       attributes: true,
                       childList: true,
@@ -141,8 +179,7 @@
           var currentNode = target;
           result.rendered = true;
           while (currentNode === htmlDomNode || htmlDomNode.contains(currentNode)) {
-              if (getComputedStyle(currentNode, null).getPropertyValue('display') ===
-                  'none') {
+              if (getStyle(currentNode, 'display') === 'none') {
                   result.rendered = false;
                   break;
               }
@@ -168,7 +205,7 @@
           _handleResetTrigger(this);
           this.addEventListener('scroll', this.__resizeEvents__.scroll, true);
       }
-      resizeHandler(this);
+      _handleResize(this);
   }
   function _handleScroll() {
       var _this = this;
@@ -178,14 +215,14 @@
           var updated = currentSize.createResizeSize(previousSize);
           if (updated.widthChanged || updated.heightChanged) {
               _this.__resizeSize__ = currentSize;
-              resizeHandler(_this);
+              _handleResize(_this);
           }
       };
       _handleResetTrigger(this);
       this.__timeID__ && cancelAnimationFrame(this.__timeID__);
       this.__timeID__ = requestAnimationFrame(scheduleUpdate);
   }
-  function resizeHandler(el) {
+  function _handleResize(el) {
       var listeners = el.__resizeListeners__ || [];
       if (listeners.length) {
           listeners.forEach(function (fn) {
@@ -235,7 +272,6 @@
   }
 
   exports.addResizeListener = addResizeListener;
-  exports.getRenderInfo = getRenderInfo;
   exports.removeResizeListener = removeResizeListener;
 
   Object.defineProperty(exports, '__esModule', { value: true });
