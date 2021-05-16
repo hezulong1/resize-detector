@@ -7,7 +7,7 @@ export interface ResizeDetectorTrigger {
   expandChild: HTMLElement;
   contract: HTMLElement;
 }
-export declare type ResizeDetectorCallback = () => void;
+export declare type ResizeDetectorCallback = (...args: unknown[]) => unknown;
 export declare type ResizeDetectorEventListener<T> = {
   ResizeObserver: ResizeObserverCallback;
   MutationObserver: MutationCallback;

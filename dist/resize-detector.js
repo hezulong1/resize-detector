@@ -37,12 +37,12 @@
           return this.width === other.width && this.height === other.height;
       };
       ResizeSize.prototype.createResizeSize = function (previous) {
-          var widthChange = previous.width !== this.width;
+          var widthChanged = previous.width !== this.width;
           var heightChanged = previous.height !== this.height;
           return {
               width: this.width,
               oldWidth: previous.width,
-              widthChanged: widthChange,
+              widthChanged: widthChanged,
               height: this.height,
               oldHeight: previous.height,
               heightChanged: heightChanged
@@ -152,15 +152,18 @@
               el.__ro__ = null;
           }
           else if (el.detachEvent && el.removeEventListener) {
-              el.__resizeEvents__ && el.detachEvent('onresize', el.__resizeEvents__.legacy);
-              el.__resizeEvents__ && document.removeEventListener('DOMSubtreeModified', el.__resizeEvents__.mutation);
+              el.__resizeEvents__ &&
+                  el.detachEvent('onresize', el.__resizeEvents__.legacy);
+              el.__resizeEvents__ &&
+                  document.removeEventListener('DOMSubtreeModified', el.__resizeEvents__.mutation);
           }
           else {
               if (el.__mo__) {
                   el.__mo__.disconnect();
                   el.__mo__ = null;
               }
-              el.__resizeEvents__ && el.removeEventListener('scroll', el.__resizeEvents__.scroll);
+              el.__resizeEvents__ &&
+                  el.removeEventListener('scroll', el.__resizeEvents__.scroll);
               el.__resizeTriggerNodes__ &&
                   el.removeChild(el.__resizeTriggerNodes__.container);
               el.__resizeTriggerNodes__ = null;
@@ -205,7 +208,8 @@
       this.__resizeRendered__ = rendered;
       if (!detached && this.__resizeTriggerNodes__) {
           _handleResetTrigger(this);
-          this.__resizeEvents__ && this.addEventListener('scroll', this.__resizeEvents__.scroll, true);
+          this.__resizeEvents__ &&
+              this.addEventListener('scroll', this.__resizeEvents__.scroll, true);
       }
       _handleResize(this);
   }
@@ -214,7 +218,9 @@
       var scheduleUpdate = function () {
           var previousSize = _this.__resizeSize__;
           var currentSize = new ResizeSize(_this.offsetWidth, _this.offsetHeight);
-          var updated = previousSize ? currentSize.createResizeSize(previousSize) : { widthChanged: false, heightChanged: false };
+          var updated = previousSize
+              ? currentSize.createResizeSize(previousSize)
+              : { widthChanged: false, heightChanged: false };
           if (updated.widthChanged || updated.heightChanged) {
               _this.__resizeSize__ = currentSize;
               _handleResize(_this);
@@ -256,7 +262,8 @@
           contract: $contractTrigger
       };
       _handleResetTrigger(el);
-      el.__resizeEvents__ && el.addEventListener('scroll', el.__resizeEvents__.scroll, true);
+      el.__resizeEvents__ &&
+          el.addEventListener('scroll', el.__resizeEvents__.scroll, true);
       el.__resizeSize__ = new ResizeSize(el.offsetWidth, el.offsetHeight);
   }
   function _handleResetTrigger(el) {

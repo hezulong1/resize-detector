@@ -35,13 +35,13 @@ export class ResizeSize implements ResizeDetectorElementSize {
   }
 
   public createResizeSize(previous: ResizeSize): ResizeDetectorElementState {
-    const widthChange = previous.width !== this.width;
+    const widthChanged = previous.width !== this.width;
     const heightChanged = previous.height !== this.height;
 
     return {
       width: this.width,
       oldWidth: previous.width,
-      widthChanged: widthChange,
+      widthChanged: widthChanged,
       height: this.height,
       oldHeight: previous.height,
       heightChanged: heightChanged
