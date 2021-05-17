@@ -16,6 +16,8 @@ import css from './resize-detector.css';
 let total = 0;
 let style: HTMLStyleElement;
 
+export { ResizeDetectorElement, ResizeDetectorCallback };
+
 export function addResizeListener(
   el: ResizeDetectorElement,
   fn: ResizeDetectorCallback

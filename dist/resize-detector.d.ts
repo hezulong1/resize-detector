@@ -2,6 +2,7 @@ import {
   ResizeDetectorElement,
   ResizeDetectorCallback
 } from './resize-detector-options';
+export { ResizeDetectorElement, ResizeDetectorCallback };
 export declare function addResizeListener(
   el: ResizeDetectorElement,
   fn: ResizeDetectorCallback
