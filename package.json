@@ -1,6 +1,6 @@
 {
   "name": "resize-detector-typescript",
-  "version": "0.0.1",
+  "version": "0.0.1-alpha.3.3",
   "description": "This project is basically a modified version of Justineo/resize-detector",
   "scripts": {
     "build": "rollup -c",
