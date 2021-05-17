@@ -5,7 +5,7 @@ This project is basically a modified version of [Justineo/resize-detector](https
 - support ie9+
 - typescript
 
-## link
+## Link
 
 - unpkg: https://unpkg.com/resize-detector-typescript
 - jsdelivr: https://cdn.jsdelivr.net/npm/resize-detector-typescript

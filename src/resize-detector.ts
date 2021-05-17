@@ -11,7 +11,36 @@ import { createStyles, getStyle } from './util';
 import { ResizeSize } from './resize-detector-state';
 import { requestAnimationFrame, cancelAnimationFrame } from './polyfill';
 
-import css from './resize-detector.css';
+const css = `
+.ResizeDetector-trigger-container {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.ResizeDetector-trigger-container,
+.ResizeDetector-expand-trigger,
+.ResizeDetector-contract-trigger,
+.ResizeDetector-contract-trigger:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ResizeDetector-expand-trigger,
+.ResizeDetector-contract-trigger {
+  background: #eee;
+  overflow: auto;
+}
+
+.ResizeDetector-contract-trigger:before {
+  width: 200%;
+  height: 200%;
+}
+`;
 
 let total = 0;
 let style: HTMLStyleElement;

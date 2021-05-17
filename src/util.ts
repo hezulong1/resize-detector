@@ -6,7 +6,9 @@ export function createStyles(styleText: string): HTMLStyleElement {
   return style;
 }
 
-export function getStyle(elem: HTMLElement, prop: string): string {
+export type Prop = Exclude<PropertyKey, symbol>;
+
+export function getStyle(elem: Element, prop: Prop): string {
   // code from jQuery
   //
   // Support: IE <=11+ (trac-14150)
@@ -25,9 +27,9 @@ export function getStyle(elem: HTMLElement, prop: string): string {
   const computedStyle = (((view.getComputedStyle(
     elem,
     null
-  ) as unknown) as Record<PropertyKey, string>) || {
+  ) as unknown) as Record<Prop, string>) || {
     display: 'none'
-  }) as Record<string, string>;
+  }) as Record<Prop, string>;
 
   return computedStyle[prop];
 }

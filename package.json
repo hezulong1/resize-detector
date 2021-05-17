@@ -7,7 +7,7 @@
     "build:es": "rollup -c rollup.config.js --format es",
     "prepare": "npm run build",
     "lint": "eslint src --ext .ts --fix",
-    "format": "prettier --write src & npm run lint"
+    "format": "prettier --write src *.js & npm run lint"
   },
   "types": "dist/resize-detector.d.ts",
   "main": "dist/resize-detector.js",
