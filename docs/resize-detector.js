@@ -76,7 +76,7 @@
       caf(id);
   }
 
-  var css = "\n.ResizeDetector-trigger-container {\n  visibility: hidden;\n  opacity: 0;\n}\n\n.ResizeDetector-trigger-container,\n.ResizeDetector-expand-trigger,\n.ResizeDetector-contract-trigger,\n.ResizeDetector-contract-trigger:before {\n  content: '';\n  position: absolute;\n  top: 0;\n  left: 0;\n  height: 100%;\n  width: 100%;\n  overflow: hidden;\n}\n\n.ResizeDetector-expand-trigger,\n.ResizeDetector-contract-trigger {\n  background: #eee;\n  overflow: auto;\n}\n\n.ResizeDetector-contract-trigger:before {\n  width: 200%;\n  height: 200%;\n}\n";
+  var css = ".ResizeDetector-trigger-container{visibility:hidden;opacity:0}.ResizeDetector-contract-trigger,.ResizeDetector-contract-trigger:before,.ResizeDetector-expand-trigger,.ResizeDetector-trigger-container{content:'';position:absolute;top:0;left:0;height:100%;width:100%;overflow:hidden}.ResizeDetector-contract-trigger,.ResizeDetector-expand-trigger{background:#eee;overflow:auto}.ResizeDetector-contract-trigger:before{width:200%;height:200%}";
   var total = 0;
   var style;
   function addResizeListener(el, fn) {
