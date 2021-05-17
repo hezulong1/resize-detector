@@ -13,6 +13,11 @@
   "main": "dist/resize-detector.js",
   "module": "dist/resize-detector.esm.js",
   "unpkg": "dist/resize-detector.min.js",
+  "jsdelivr": "dist/resize-detector.min.js",
+  "files": [
+    "dist",
+    "src"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hezulong1/resize-detector.git"
