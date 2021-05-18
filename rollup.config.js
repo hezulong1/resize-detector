@@ -1,6 +1,7 @@
 import path from 'path';
 import minimist from 'minimist';
 import ts from 'rollup-plugin-typescript2';
+import postcss from 'rollup-plugin-postcss';
 import { terser } from 'rollup-plugin-terser';
 
 const argv = minimist(process.argv.slice(2));
@@ -10,6 +11,7 @@ const tsPluginConfig = {
   tsconfig: path.resolve(__dirname, 'tsconfig.json')
 };
 const tsPlugin = ts(tsPluginConfig);
+const postcssPlugin = postcss({ inject: false, minimize: true });
 
 const buildFormats = [];
 if (!argv.format || argv.format === 'es') {
@@ -21,6 +23,7 @@ if (!argv.format || argv.format === 'es') {
       sourcemap: false
     },
     plugins: [
+      postcssPlugin,
       ts({
         ...tsPluginConfig,
         useTsconfigDeclarationDir: false,
@@ -45,7 +48,7 @@ if (!argv.format || argv.format === 'umd') {
         name: 'ResizeDetector',
         sourcemap: false
       },
-      plugins: [tsPlugin]
+      plugins: [postcssPlugin, tsPlugin]
     },
     {
       input: './src/resize-detector.ts',
@@ -55,7 +58,7 @@ if (!argv.format || argv.format === 'umd') {
         name: 'ResizeDetector',
         sourcemap: false
       },
-      plugins: [tsPlugin, terser()]
+      plugins: [postcssPlugin, tsPlugin, terser()]
     }
   ];
   buildFormats.push(...unpkgConfig);
@@ -70,6 +73,7 @@ buildFormats.push({
     sourcemap: false
   },
   plugins: [
+    postcssPlugin,
     ts({
       ...tsPluginConfig,
       tsconfigOverride: {
